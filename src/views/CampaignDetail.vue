@@ -177,7 +177,40 @@
   
           <!-- Список лидов -->
           <div class="bg-white rounded-lg shadow-lg p-8">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">Лиды кампании</h2>
+            <!-- Заголовок с кнопкой переключения вида -->
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-2xl font-bold text-gray-900">Лиды кампании</h2>
+              
+              <!-- Переключатель вида -->
+              <div class="inline-flex rounded-lg border border-gray-300 p-1 bg-gray-50">
+                <button
+                  @click="isGridView = false"
+                  :class="[
+                    'px-4 py-2 rounded-md text-sm font-medium transition-all',
+                    !isGridView 
+                      ? 'bg-white text-gray-900 shadow-sm' 
+                      : 'text-gray-600 hover:text-gray-900'
+                  ]"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                  </svg>
+                </button>
+                <button
+                  @click="isGridView = true"
+                  :class="[
+                    'px-4 py-2 rounded-md text-sm font-medium transition-all',
+                    isGridView 
+                      ? 'bg-white text-gray-900 shadow-sm' 
+                      : 'text-gray-600 hover:text-gray-900'
+                  ]"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
   
             <!-- Загрузка лидов -->
             <div v-if="isLoadingLeads" class="flex justify-center py-8">
@@ -189,8 +222,8 @@
               {{ leadsError }}
             </div>
   
-            <!-- Список лидов -->
-            <div v-if="!isLoadingLeads && !leadsError && leads.length > 0" class="space-y-4">
+            <!-- Список лидов (режим списка) -->
+            <div v-if="!isLoadingLeads && !leadsError && leads.length > 0 && !isGridView" class="space-y-4">
               <div
                 v-for="lead in leads"
                 :key="lead.id"
@@ -244,28 +277,66 @@
                   </div>
                 </div>
               </div>
-  
-              <!-- Пагинация -->
-              <div v-if="pagination && pagination.last_page > 1" class="flex items-center justify-between pt-6 border-t border-gray-200">
-                <div class="text-sm text-gray-600">
-                  Страница {{ pagination.current_page }} из {{ pagination.last_page }} 
-                  (Всего: {{ pagination.total }})
+            </div>
+
+            <!-- Сетка лидов (режим сетки) -->
+            <div v-if="!isLoadingLeads && !leadsError && leads.length > 0 && isGridView" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div
+                v-for="lead in leads"
+                :key="lead.id"
+                class="p-5 border-2 border-gray-200 rounded-lg hover:border-indigo-300 hover:shadow-md transition-all bg-white"
+              >
+                <!-- Имя и статус -->
+                <div class="mb-4">
+                  <h3 class="text-lg font-semibold text-gray-900 mb-2 truncate">
+                    {{ lead.name || 'Без имени' }}
+                  </h3>
+                  
+                  <span 
+                    v-if="lead.leadStatus"
+                    :class="[
+                      'inline-block px-3 py-1 rounded-full text-xs font-medium',
+                      lead.leadStatus.is_success 
+                        ? 'bg-green-100 text-green-800' 
+                        : lead.leadStatus.is_failure
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-blue-100 text-blue-800'
+                    ]"
+                  >
+                    {{ lead.leadStatus.name }}
+                  </span>
                 </div>
-                <div class="flex gap-2">
-                  <button
-                    @click="loadLeads(pagination.current_page - 1)"
-                    :disabled="!pagination.prev_page_url"
-                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    ← Назад
-                  </button>
-                  <button
-                    @click="loadLeads(pagination.current_page + 1)"
-                    :disabled="!pagination.next_page_url"
-                    class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Далее →
-                  </button>
+
+                <!-- Телефон -->
+                <div v-if="lead.phone" class="mb-4 pb-4 border-b border-gray-200">
+                  <p class="text-sm text-gray-600 flex items-center gap-2">
+                    <span>📞</span>
+                    <span class="truncate">{{ lead.phone }}</span>
+                  </p>
+                </div>
+
+                <!-- Информация -->
+                <div class="space-y-3">
+                  <div>
+                    <p class="text-xs text-gray-500 mb-1">Менеджер</p>
+                    <p class="text-sm font-medium text-gray-900 truncate">
+                      {{ lead.manager?.name || 'Не назначен' }}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p class="text-xs text-gray-500 mb-1">Успешных сделок</p>
+                    <p class="text-lg font-bold text-green-600">
+                      {{ lead.successful_deals_count || 0 }}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p class="text-xs text-gray-500 mb-1">Дата создания</p>
+                    <p class="text-sm text-gray-700">
+                      {{ formatDate(lead.created_at) }}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -273,6 +344,30 @@
             <!-- Нет лидов -->
             <div v-if="!isLoadingLeads && !leadsError && leads.length === 0" class="text-center py-12">
               <p class="text-gray-500 text-lg">Нет лидов для этой кампании</p>
+            </div>
+
+            <!-- Пагинация -->
+            <div v-if="!isLoadingLeads && leads.length > 0 && pagination && pagination.last_page > 1" class="flex items-center justify-between pt-6 border-t border-gray-200 mt-6">
+              <div class="text-sm text-gray-600">
+                Страница {{ pagination.current_page }} из {{ pagination.last_page }} 
+                (Всего: {{ pagination.total }})
+              </div>
+              <div class="flex gap-2">
+                <button
+                  @click="loadLeads(pagination.current_page - 1)"
+                  :disabled="!pagination.prev_page_url"
+                  class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  ← Назад
+                </button>
+                <button
+                  @click="loadLeads(pagination.current_page + 1)"
+                  :disabled="!pagination.next_page_url"
+                  class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Далее →
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -295,6 +390,7 @@
   const isLoadingLeads = ref(false);
   const isUpdating = ref(false);
   const isEditMode = ref(false);
+  const isGridView = ref(false); // false = список, true = сетка
   const error = ref('');
   const leadsError = ref('');
   const updateError = ref('');
@@ -553,5 +649,3 @@
     fetchCampaignDetails();
   });
   </script>
-  
- 
